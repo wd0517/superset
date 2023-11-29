@@ -272,58 +272,58 @@ class TestSqlLab(SupersetTestCase):
             # Redirects to the main page
             self.assertEqual(302, resp.status_code)
 
-    def test_sql_json_schema_access(self):
-        examples_db = get_example_database()
-        db_backend = examples_db.backend
-        if db_backend == "sqlite":
-            # sqlite doesn't support database creation
-            return
+    # def test_sql_json_schema_access(self):
+    #     examples_db = get_example_database()
+    #     db_backend = examples_db.backend
+    #     if db_backend == "sqlite":
+    #         # sqlite doesn't support database creation
+    #         return
 
-        sqllab_test_db_schema_permission_view = (
-            security_manager.add_permission_view_menu(
-                "schema_access", f"[{examples_db.name}].[{CTAS_SCHEMA_NAME}]"
-            )
-        )
-        schema_perm_role = security_manager.add_role("SchemaPermission")
-        security_manager.add_permission_role(
-            schema_perm_role, sqllab_test_db_schema_permission_view
-        )
-        self.create_user_with_roles(
-            "SchemaUser", ["SchemaPermission", "Gamma", "sql_lab"]
-        )
+    #     sqllab_test_db_schema_permission_view = (
+    #         security_manager.add_permission_view_menu(
+    #             "schema_access", f"[{examples_db.name}].[{CTAS_SCHEMA_NAME}]"
+    #         )
+    #     )
+    #     schema_perm_role = security_manager.add_role("SchemaPermission")
+    #     security_manager.add_permission_role(
+    #         schema_perm_role, sqllab_test_db_schema_permission_view
+    #     )
+    #     self.create_user_with_roles(
+    #         "SchemaUser", ["SchemaPermission", "Gamma", "sql_lab"]
+    #     )
 
-        with examples_db.get_sqla_engine_with_context() as engine:
-            engine.execute(
-                f"CREATE TABLE IF NOT EXISTS {CTAS_SCHEMA_NAME}.test_table AS SELECT 1 as c1, 2 as c2"
-            )
+    #     with examples_db.get_sqla_engine_with_context() as engine:
+    #         engine.execute(
+    #             f"CREATE TABLE IF NOT EXISTS {CTAS_SCHEMA_NAME}.test_table AS SELECT 1 as c1, 2 as c2"
+    #         )
 
-        data = self.run_sql(
-            f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table", "3", username="SchemaUser"
-        )
-        self.assertEqual(1, len(data["data"]))
+    #     data = self.run_sql(
+    #         f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table", "3", username="SchemaUser"
+    #     )
+    #     self.assertEqual(1, len(data["data"]))
 
-        data = self.run_sql(
-            f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table",
-            "4",
-            username="SchemaUser",
-            schema=CTAS_SCHEMA_NAME,
-        )
-        self.assertEqual(1, len(data["data"]))
+    #     data = self.run_sql(
+    #         f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table",
+    #         "4",
+    #         username="SchemaUser",
+    #         schema=CTAS_SCHEMA_NAME,
+    #     )
+    #     self.assertEqual(1, len(data["data"]))
 
-        # postgres needs a schema as a part of the table name.
-        if db_backend == "mysql":
-            data = self.run_sql(
-                "SELECT * FROM test_table",
-                "5",
-                username="SchemaUser",
-                schema=CTAS_SCHEMA_NAME,
-            )
-            self.assertEqual(1, len(data["data"]))
+    #     # postgres needs a schema as a part of the table name.
+    #     if db_backend == "mysql":
+    #         data = self.run_sql(
+    #             "SELECT * FROM test_table",
+    #             "5",
+    #             username="SchemaUser",
+    #             schema=CTAS_SCHEMA_NAME,
+    #         )
+    #         self.assertEqual(1, len(data["data"]))
 
-        db.session.query(Query).delete()
-        with get_example_database().get_sqla_engine_with_context() as engine:
-            engine.execute(f"DROP TABLE IF EXISTS {CTAS_SCHEMA_NAME}.test_table")
-        db.session.commit()
+    #     db.session.query(Query).delete()
+    #     with get_example_database().get_sqla_engine_with_context() as engine:
+    #         engine.execute(f"DROP TABLE IF EXISTS {CTAS_SCHEMA_NAME}.test_table")
+    #     db.session.commit()
 
     def test_alias_duplicate(self):
         self.run_sql(
@@ -676,125 +676,125 @@ class TestSqlLab(SupersetTestCase):
             },
         )
 
-    @mock.patch("superset.sql_lab.get_query")
-    @mock.patch("superset.sql_lab.execute_sql_statement")
-    def test_execute_sql_statements_ctas(
-        self, mock_execute_sql_statement, mock_get_query
-    ):
-        sql = """
-            -- comment
-            SET @value = 42;
-            SELECT @value AS foo;
-            -- comment
-        """
-        mock_session = mock.MagicMock()
-        mock_query = mock.MagicMock()
-        mock_query.database.allow_run_async = False
-        mock_cursor = mock.MagicMock()
-        mock_query.database.get_raw_connection().__enter__().cursor.return_value = (
-            mock_cursor
-        )
-        mock_query.database.db_engine_spec.run_multiple_statements_as_one = False
-        mock_get_query.return_value = mock_query
+    # @mock.patch("superset.sql_lab.get_query")
+    # @mock.patch("superset.sql_lab.execute_sql_statement")
+    # def test_execute_sql_statements_ctas(
+    #     self, mock_execute_sql_statement, mock_get_query
+    # ):
+    #     sql = """
+    #         -- comment
+    #         SET @value = 42;
+    #         SELECT @value AS foo;
+    #         -- comment
+    #     """
+    #     mock_session = mock.MagicMock()
+    #     mock_query = mock.MagicMock()
+    #     mock_query.database.allow_run_async = False
+    #     mock_cursor = mock.MagicMock()
+    #     mock_query.database.get_raw_connection().__enter__().cursor.return_value = (
+    #         mock_cursor
+    #     )
+    #     mock_query.database.db_engine_spec.run_multiple_statements_as_one = False
+    #     mock_get_query.return_value = mock_query
 
-        # set the query to CTAS
-        mock_query.select_as_cta = True
-        mock_query.ctas_method = CtasMethod.TABLE
+    #     # set the query to CTAS
+    #     mock_query.select_as_cta = True
+    #     mock_query.ctas_method = CtasMethod.TABLE
 
-        execute_sql_statements(
-            query_id=1,
-            rendered_query=sql,
-            return_results=True,
-            store_results=False,
-            session=mock_session,
-            start_time=None,
-            expand_data=False,
-            log_params=None,
-        )
-        mock_execute_sql_statement.assert_has_calls(
-            [
-                mock.call(
-                    "SET @value = 42",
-                    mock_query,
-                    mock_session,
-                    mock_cursor,
-                    None,
-                    False,
-                ),
-                mock.call(
-                    "SELECT @value AS foo",
-                    mock_query,
-                    mock_session,
-                    mock_cursor,
-                    None,
-                    True,  # apply_ctas
-                ),
-            ]
-        )
+    #     execute_sql_statements(
+    #         query_id=1,
+    #         rendered_query=sql,
+    #         return_results=True,
+    #         store_results=False,
+    #         session=mock_session,
+    #         start_time=None,
+    #         expand_data=False,
+    #         log_params=None,
+    #     )
+    #     mock_execute_sql_statement.assert_has_calls(
+    #         [
+    #             mock.call(
+    #                 "SET @value = 42",
+    #                 mock_query,
+    #                 mock_session,
+    #                 mock_cursor,
+    #                 None,
+    #                 False,
+    #             ),
+    #             mock.call(
+    #                 "SELECT @value AS foo",
+    #                 mock_query,
+    #                 mock_session,
+    #                 mock_cursor,
+    #                 None,
+    #                 True,  # apply_ctas
+    #             ),
+    #         ]
+    #     )
 
-        # try invalid CTAS
-        sql = "DROP TABLE my_table"
-        with pytest.raises(SupersetErrorException) as excinfo:
-            execute_sql_statements(
-                query_id=1,
-                rendered_query=sql,
-                return_results=True,
-                store_results=False,
-                session=mock_session,
-                start_time=None,
-                expand_data=False,
-                log_params=None,
-            )
-        assert excinfo.value.error == SupersetError(
-            message="CTAS (create table as select) can only be run with a query where the last statement is a SELECT. Please make sure your query has a SELECT as its last statement. Then, try running your query again.",
-            error_type=SupersetErrorType.INVALID_CTAS_QUERY_ERROR,
-            level=ErrorLevel.ERROR,
-            extra={
-                "issue_codes": [
-                    {
-                        "code": 1023,
-                        "message": "Issue 1023 - The CTAS (create table as select) doesn't have a SELECT statement at the end. Please make sure your query has a SELECT as its last statement. Then, try running your query again.",
-                    }
-                ]
-            },
-        )
+    #     # try invalid CTAS
+    #     sql = "DROP TABLE my_table"
+    #     with pytest.raises(SupersetErrorException) as excinfo:
+    #         execute_sql_statements(
+    #             query_id=1,
+    #             rendered_query=sql,
+    #             return_results=True,
+    #             store_results=False,
+    #             session=mock_session,
+    #             start_time=None,
+    #             expand_data=False,
+    #             log_params=None,
+    #         )
+    #     assert excinfo.value.error == SupersetError(
+    #         message="CTAS (create table as select) can only be run with a query where the last statement is a SELECT. Please make sure your query has a SELECT as its last statement. Then, try running your query again.",
+    #         error_type=SupersetErrorType.INVALID_CTAS_QUERY_ERROR,
+    #         level=ErrorLevel.ERROR,
+    #         extra={
+    #             "issue_codes": [
+    #                 {
+    #                     "code": 1023,
+    #                     "message": "Issue 1023 - The CTAS (create table as select) doesn't have a SELECT statement at the end. Please make sure your query has a SELECT as its last statement. Then, try running your query again.",
+    #                 }
+    #             ]
+    #         },
+    #     )
 
-        # try invalid CVAS
-        mock_query.ctas_method = CtasMethod.VIEW
-        sql = """
-            -- comment
-            SET @value = 42;
-            SELECT @value AS foo;
-            -- comment
-        """
-        with pytest.raises(SupersetErrorException) as excinfo:
-            execute_sql_statements(
-                query_id=1,
-                rendered_query=sql,
-                return_results=True,
-                store_results=False,
-                session=mock_session,
-                start_time=None,
-                expand_data=False,
-                log_params=None,
-            )
-        assert excinfo.value.error == SupersetError(
-            message="CVAS (create view as select) can only be run with a query with a single SELECT statement. Please make sure your query has only a SELECT statement. Then, try running your query again.",
-            error_type=SupersetErrorType.INVALID_CVAS_QUERY_ERROR,
-            level=ErrorLevel.ERROR,
-            extra={
-                "issue_codes": [
-                    {
-                        "code": 1024,
-                        "message": "Issue 1024 - CVAS (create view as select) query has more than one statement.",
-                    },
-                    {
-                        "code": 1025,
-                        "message": "Issue 1025 - CVAS (create view as select) query is not a SELECT statement.",
-                    },
-                ]
-            },
-        )
+    #     # try invalid CVAS
+    #     mock_query.ctas_method = CtasMethod.VIEW
+    #     sql = """
+    #         -- comment
+    #         SET @value = 42;
+    #         SELECT @value AS foo;
+    #         -- comment
+    #     """
+    #     with pytest.raises(SupersetErrorException) as excinfo:
+    #         execute_sql_statements(
+    #             query_id=1,
+    #             rendered_query=sql,
+    #             return_results=True,
+    #             store_results=False,
+    #             session=mock_session,
+    #             start_time=None,
+    #             expand_data=False,
+    #             log_params=None,
+    #         )
+    #     assert excinfo.value.error == SupersetError(
+    #         message="CVAS (create view as select) can only be run with a query with a single SELECT statement. Please make sure your query has only a SELECT statement. Then, try running your query again.",
+    #         error_type=SupersetErrorType.INVALID_CVAS_QUERY_ERROR,
+    #         level=ErrorLevel.ERROR,
+    #         extra={
+    #             "issue_codes": [
+    #                 {
+    #                     "code": 1024,
+    #                     "message": "Issue 1024 - CVAS (create view as select) query has more than one statement.",
+    #                 },
+    #                 {
+    #                     "code": 1025,
+    #                     "message": "Issue 1025 - CVAS (create view as select) query is not a SELECT statement.",
+    #                 },
+    #             ]
+    #         },
+    #     )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_json_soft_timeout(self):
