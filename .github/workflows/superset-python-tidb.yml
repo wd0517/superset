@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  test-postgres-presto:
+  test-postgres-tidb:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -70,3 +70,7 @@ jobs:
         if: steps.check.outcome == 'failure'
         run: |
           ./scripts/python_tests.sh -m 'chart_data_flow or sql_json_flow'
+      - name: Debug TiDB table
+        run: mysql -h 127.0.0.1 -P 14000 -u root test -e "show tables;"
+      - name: Debug TiDB db
+        run: mysql -h 127.0.0.1 -P 14000 -u root test -e "show databases;"
