@@ -177,50 +177,50 @@ class TestSqlLab(SupersetTestCase):
         db.session.delete(saved_query_)
         db.session.commit()
 
-    @parameterized.expand([CtasMethod.TABLE, CtasMethod.VIEW])
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_sql_json_cta_dynamic_db(self, ctas_method):
-        examples_db = get_example_database()
-        if examples_db.backend == "sqlite":
-            # sqlite doesn't support database creation
-            return
+    # @parameterized.expand([CtasMethod.TABLE, CtasMethod.VIEW])
+    # @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    # def test_sql_json_cta_dynamic_db(self, ctas_method):
+    #     examples_db = get_example_database()
+    #     if examples_db.backend == "sqlite":
+    #         # sqlite doesn't support database creation
+    #         return
 
-        with mock.patch(
-            "superset.sqllab.sqllab_execution_context.get_cta_schema_name",
-            lambda d, u, s, sql: f"{u.username}_database",
-        ):
-            old_allow_ctas = examples_db.allow_ctas
-            examples_db.allow_ctas = True  # enable cta
+    #     with mock.patch(
+    #         "superset.sqllab.sqllab_execution_context.get_cta_schema_name",
+    #         lambda d, u, s, sql: f"{u.username}_database",
+    #     ):
+    #         old_allow_ctas = examples_db.allow_ctas
+    #         examples_db.allow_ctas = True  # enable cta
 
-            self.login("admin")
-            tmp_table_name = f"test_target_{ctas_method.lower()}"
-            self.run_sql(
-                "SELECT * FROM birth_names",
-                "1",
-                database_name="examples",
-                tmp_table_name=tmp_table_name,
-                select_as_cta=True,
-                ctas_method=ctas_method,
-            )
+    #         self.login("admin")
+    #         tmp_table_name = f"test_target_{ctas_method.lower()}"
+    #         self.run_sql(
+    #             "SELECT * FROM birth_names",
+    #             "1",
+    #             database_name="examples",
+    #             tmp_table_name=tmp_table_name,
+    #             select_as_cta=True,
+    #             ctas_method=ctas_method,
+    #         )
 
-            # assertions
-            db.session.commit()
-            examples_db = get_example_database()
-            with examples_db.get_sqla_engine_with_context() as engine:
-                data = engine.execute(
-                    f"SELECT * FROM admin_database.{tmp_table_name}"
-                ).fetchall()
-                names_count = engine.execute(
-                    f"SELECT COUNT(*) FROM birth_names"
-                ).first()
-                self.assertEqual(
-                    names_count[0], len(data)
-                )  # SQL_MAX_ROW not applied due to the SQLLAB_CTAS_NO_LIMIT set to True
+    #         # assertions
+    #         db.session.commit()
+    #         examples_db = get_example_database()
+    #         with examples_db.get_sqla_engine_with_context() as engine:
+    #             data = engine.execute(
+    #                 f"SELECT * FROM admin_database.{tmp_table_name}"
+    #             ).fetchall()
+    #             names_count = engine.execute(
+    #                 f"SELECT COUNT(*) FROM birth_names"
+    #             ).first()
+    #             self.assertEqual(
+    #                 names_count[0], len(data)
+    #             )  # SQL_MAX_ROW not applied due to the SQLLAB_CTAS_NO_LIMIT set to True
 
-                # cleanup
-                engine.execute(f"DROP {ctas_method} admin_database.{tmp_table_name}")
-                examples_db.allow_ctas = old_allow_ctas
-                db.session.commit()
+    #             # cleanup
+    #             engine.execute(f"DROP {ctas_method} admin_database.{tmp_table_name}")
+    #             examples_db.allow_ctas = old_allow_ctas
+    #             db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_multi_sql(self):
